@@ -1,0 +1,171 @@
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+// Task class
+class Task {
+    private String description;
+    private LocalTime startTime;
+    private LocalTime endTime;
+    private String priority;
+    private boolean completed;
+
+    public Task(String description, LocalTime startTime, LocalTime endTime, String priority) {
+        this.description = description;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.priority = priority;
+        this.completed = false;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public boolean isCompleted() {
+        return completed;
+    }
+
+    public void markAsCompleted() {
+        this.completed = true;
+    }
+
+    @Override
+    public String toString() {
+        return startTime + " - " + endTime + ": " + description + " [" + priority + "]" + (completed ? " (Completed)" : "");
+    }
+}
+
+// TaskFactory class
+class TaskFactory {
+    public static Task createTask(String description, String startTime, String endTime, String priority) throws Exception {
+        try {
+            LocalTime start = LocalTime.parse(startTime);
+            LocalTime end = LocalTime.parse(endTime);
+            if (end.isBefore(start)) {
+                throw new Exception("End time cannot be before start time.");
+            }
+            return new Task(description, start, end, priority);
+        } catch (Exception e) {
+            throw new Exception("Invalid time format.");
+        }
+    }
+}
+
+// ScheduleManager class
+class ScheduleManager {
+    private static ScheduleManager instance;
+    private List<Task> tasks;
+
+    private ScheduleManager() {
+        tasks = new ArrayList<>();
+    }
+
+    public static ScheduleManager getInstance() {
+        if (instance == null) {
+            instance = new ScheduleManager();
+        }
+        return instance;
+    }
+
+    public void addTask(Task task) throws Exception {
+        for (Task existingTask : tasks) {
+            if (task.getStartTime().isBefore(existingTask.getEndTime()) && task.getEndTime().isAfter(existingTask.getStartTime())) {
+                throw new Exception("Error: Task conflicts with existing task \"" + existingTask.getDescription() + "\".");
+            }
+        }
+        tasks.add(task);
+        System.out.println("Task added successfully. No conflicts.");
+    }
+
+    public void removeTask(String description) throws Exception {
+        boolean found = tasks.removeIf(task -> task.getDescription().equals(description));
+        if (!found) {
+            throw new Exception("Error: Task not found.");
+        }
+        System.out.println("Task removed successfully.");
+    }
+
+    public void viewTasks() {
+        if (tasks.isEmpty()) {
+            System.out.println("No tasks scheduled for the day.");
+            return;
+        }
+        Collections.sort(tasks, Comparator.comparing(Task::getStartTime));
+        for (Task task : tasks) {
+            System.out.println(task);
+        }
+    }
+
+    public void editTask(String oldDescription, Task newTask) throws Exception {
+        removeTask(oldDescription);
+        addTask(newTask);
+        System.out.println("Task edited successfully.");
+    }
+
+    public void markTaskAsCompleted(String description) throws Exception {
+        for (Task task : tasks) {
+            if (task.getDescription().equals(description)) {
+                task.markAsCompleted();
+                System.out.println("Task marked as completed.");
+                return;
+            }
+        }
+        throw new Exception("Error: Task not found.");
+    }
+
+    public void viewTasksByPriority(String priority) {
+        boolean found = false;
+        for (Task task : tasks) {
+            if (task.getPriority().equalsIgnoreCase(priority)) {
+                System.out.println(task);
+                found = true;
+            }
+        }
+        if (!found) {
+            System.out.println("No tasks found with priority level: " + priority);
+        }
+    }
+}
+
+// Main class
+public class AstronautScheduleOrganizer {
+    public static void main(String[] args) {
+        ScheduleManager manager = ScheduleManager.getInstance();
+
+        try {
+            Task task1 = TaskFactory.createTask("Morning Exercise", "07:00", "08:00", "High");
+            manager.addTask(task1);
+
+            Task task2 = TaskFactory.createTask("Team Meeting", "09:00", "10:00", "Medium");
+            manager.addTask(task2);
+
+            manager.viewTasks();
+
+            manager.removeTask("Morning Exercise");
+
+            Task task3 = TaskFactory.createTask("Lunch Break", "12:00", "13:00", "Low");
+            manager.addTask(task3);
+
+            manager.markTaskAsCompleted("Team Meeting");
+
+            manager.viewTasksByPriority("Low");
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+}
